@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지적기사 세부측량 계산</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #eef2f7;
+            margin: 20px;
+            color: #333;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .input-group, .point-input {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #dbe4ed;
+            border-radius: 8px;
+            background-color: #f8fbfd;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #cdd5df;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+            outline: none;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e6ed;
+        }
+
+        .results p {
+            background-color: #e9f0f7;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 1em;
+            word-wrap: break-word;
+        }
+
+        .results p strong {
+            color: #0056b3;
+        }
+
+        #calculatedDistance p {
+            font-size: 1.1em;
+            font-weight: bold;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #error-message {
+            color: #d9534f;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        #close-modal-btn {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>지적기사 세부측량 계산</h1>
+
+        <div id="error-modal" class="modal">
+            <div class="modal-content">
+                <p id="error-message"></p>
+                <button id="close-modal-btn">닫기</button>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <h2>1. A점 (기준점)</h2>
+            <label for="pointAX">X 좌표 (북쪽, North):</label>
+            <input type="number" id="pointAX" placeholder="예: 120.000">
+            <label for="pointAY">Y 좌표 (동쪽, East):</label>
+            <input type="number" id="pointAY" placeholder="예: 150.000">
+        </div>
+
+        <div class="input-group">
+            <h2>2. 초기 방위각 (A → T)</h2>
+            <label for="bearingAT">방위각 (도-분-초, 예: 235-35-20):</label>
+            <input type="text" id="bearingAT" placeholder="예: 235-35-20">
+        </div>
+
+        <div class="point-input">
+            <h2>3. B점 계산 (A점 기준)</h2>
+            <label for="deflectionAngleB">교각 (도-분-초, 예: 80-04-45):</label>
+            <input type="text" id="deflectionAngleB" placeholder="예: 80-04-45">
+            <label for="distanceB">수평거리 (m):</label>
+            <input type="number" id="distanceB" placeholder="예: 12.820">
+        </div>
+
+        <div class="point-input">
+            <h2>4. C점 계산 (B점 기준)</h2>
+            <label for="deflectionAngleC">교각 (도-분-초, 예: 83-23-31):</label>
+            <input type="text" id="deflectionAngleC" placeholder="예: 83-23-31">
+            <label for="distanceC">수평거리 (m):</label>
+            <input type="number" id="distanceC" placeholder="예: 23.369">
+        </div>
+
+        <div class="point-input">
+            <h2>5. P점 및 Q점 계산 (B점 기준)</h2>
+            <label for="deflectionAngleP">P점 교각 (도-분-초, 예: 10-5-55):</label>
+            <input type="text" id="deflectionAngleP" placeholder="예: 10-5-55">
+            <label for="distanceP">P점 수평거리 (m):</label>
+            <input type="number" id="distanceP" placeholder="예: 10.00">
+            <label for="deflectionAngleQ">Q점 교각 (도-분-초, 예: 50-35-10):</label>
+            <input type="text" id="deflectionAngleQ" placeholder="예: 50-35-10">
+            <label for="distanceQ">Q점 수평거리 (m):</label>
+            <input type="number" id="distanceQ" placeholder="예: 15.00">
+        </div>
+
+        <div class="point-input">
+            <h2>6. R점 및 S점 계산 (C점 기준)</h2>
+            <label for="deflectionAngleR">R점 교각 (도-분-초, 예: 60-40-05):</label>
+            <input type="text" id="deflectionAngleR" placeholder="예: 60-40-05">
+            <label for="distanceR">R점 수평거리 (m):</label>
+            <input type="number" id="distanceR" placeholder="예: 12.00">
+            <label for="deflectionAngleS">S점 교각 (도-분-초, 예: 20-55-45):</label>
+            <input type="text" id="deflectionAngleS" placeholder="예: 20-55-45">
+            <label for="distanceS">S점 수평거리 (m):</label>
+            <input type="number" id="distanceS" placeholder="예: 18.00">
+        </div>
+
+        <button id="calculateBtn">좌표 및 거리 계산</button>
+
+        <div class="results">
+            <h2>계산된 좌표</h2>
+            <div id="calculatedCoordinates">
+                <p><strong>A점:</strong> X: <span id="displayAX"></span>, Y: <span id="displayAY"></span></p>
+                <p><strong>B점:</strong> X: <span id="displayBX"></span>, Y: <span id="displayBY"></span></p>
+                <p><strong>C점:</strong> X: <span id="displayCX"></span>, Y: <span id="displayCY"></span></p>
+                <p><strong>P점:</strong> X: <span id="displayPX"></span>, Y: <span id="displayPY"></span></p>
+                <p><strong>Q점:</strong> X: <span id="displayQX"></span>, Y: <span id="displayQY"></span></p>
+                <p><strong>R점:</strong> X: <span id="displayRX"></span>, Y: <span id="displayRY"></span></p>
+                <p><strong>S점:</strong> X: <span id="displaySX"></span>, Y: <span id="displaySY"></span></p>
+            </div>
+            <h2>계산된 P-S 거리</h2>
+            <div id="calculatedDistance">
+                <p>P-S 거리: <span id="displayPSDistance"></span> m</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const calculateButton = document.getElementById('calculateBtn');
+            const errorModal = document.getElementById('error-modal');
+            const errorMessage = document.getElementById('error-message');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+
+            function showModal(message) {
+                errorMessage.textContent = message;
+                errorModal.style.display = 'block';
+            }
+
+            closeModalBtn.onclick = function() {
+                errorModal.style.display = 'none';
+            }
+
+            window.onclick = function(event) {
+                if (event.target == errorModal) {
+                    errorModal.style.display = 'none';
+                }
+            }
+
+            /**
+             * 도-분-초 문자열을 도(degrees)로 변환하는 함수
+             * @param {string} dmsString 도-분-초 형식의 문자열 (예: '120-30-20')
+             * @returns {number|null} 도(degrees) 또는 null (형식 오류 시)
+             */
+            function dmsToDegrees(dmsString) {
+                const tempString = dmsString.trim();
+                const parts = tempString.split('-').map(Number);
+                
+                if (parts.length === 3 && !parts.some(isNaN) && parts[1] < 60 && parts[2] < 60) {
+                    const sign = parts[0] < 0 ? -1 : 1;
+                    return sign * (Math.abs(parts[0]) + parseFloat(parts[1]) / 60 + parseFloat(parts[2]) / 3600);
+                }
+                return null;
+            }
+
+            function degreesToRadians(degrees) {
+                return degrees * (Math.PI / 180);
+            }
+
+            /**
+             * 새로운 좌표를 계산하는 함수입니다.
+             * 표준 측량 좌표계(X축: 북쪽, Y축: 동쪽)를 기준으로 계산합니다.
+             * @param {number} originX 기준점의 X 좌표.
+             * @param {number} originY 기준점의 Y 좌표.
+             * @param {number} bearingRadians 방위각(라디안).
+             * @param {number} distance 수평거리.
+             * @returns {object} 새로운 X, Y 좌표를 포함하는 객체.
+             */
+            function calculateNewCoordinate(originX, originY, bearingRadians, distance) {
+                const deltaX = distance * Math.cos(bearingRadians); // X축 (북쪽)
+                const deltaY = distance * Math.sin(bearingRadians); // Y축 (동쪽)
+
+                const newX = originX + deltaX;
+                const newY = originY + deltaY;
+
+                return { x: newX, y: newY };
+            }
+            
+            /**
+             * 다음 측점의 방위각을 계산하는 함수입니다.
+             * 이전 방위각의 역방위각(180도 추가)에 교각을 더하는 방식으로 계산합니다.
+             * @param {number} prevBearing 이전 방위각(도).
+             * @param {number} deflectionAngle 교각(도).
+             * @returns {number} 새로운 방위각(도).
+             */
+            function calculateNextBearing(prevBearing, deflectionAngle) {
+                let backBearing = prevBearing + 180;
+                if (backBearing >= 360) {
+                    backBearing -= 360;
+                }
+                let newBearing = backBearing + deflectionAngle;
+                
+                while (newBearing >= 360) {
+                    newBearing -= 360;
+                }
+                while (newBearing < 0) {
+                    newBearing += 360;
+                }
+                return newBearing;
+            }
+            
+            function calculateDistance(x1, y1, x2, y2) {
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            calculateButton.addEventListener('click', () => {
+                document.getElementById('displayAX').textContent = '';
+                document.getElementById('displayAY').textContent = '';
+                document.getElementById('displayBX').textContent = '';
+                document.getElementById('displayBY').textContent = '';
+                document.getElementById('displayCX').textContent = '';
+                document.getElementById('displayCY').textContent = '';
+                document.getElementById('displayPX').textContent = '';
+                document.getElementById('displayPY').textContent = '';
+                document.getElementById('displayQX').textContent = '';
+                document.getElementById('displayQY').textContent = '';
+                document.getElementById('displayRX').textContent = '';
+                document.getElementById('displayRY').textContent = '';
+                document.getElementById('displaySX').textContent = '';
+                document.getElementById('displaySY').textContent = '';
+                document.getElementById('displayPSDistance').textContent = '';
+                
+                const pointAX = parseFloat(document.getElementById('pointAX').value);
+                const pointAY = parseFloat(document.getElementById('pointAY').value);
+                const bearingAT_dms_str = document.getElementById('bearingAT').value;
+
+                if (isNaN(pointAX) || isNaN(pointAY)) {
+                    showModal("A점 X, Y 좌표를 올바른 숫자로 입력해주세요.");
+                    return;
+                }
+                const bearingAT_deg = dmsToDegrees(bearingAT_dms_str);
+                if (bearingAT_deg === null) {
+                    showModal("초기 방위각 형식이 올바르지 않습니다. '도-분-초' 형식으로 입력해주세요 (예: 120-30-20).");
+                    return;
+                }
+                
+                const deflectionAngleB_dms_str = document.getElementById('deflectionAngleB').value;
+                const distanceB = parseFloat(document.getElementById('distanceB').value);
+                
+                const deflectionAngleB_deg = dmsToDegrees(deflectionAngleB_dms_str);
+                if (deflectionAngleB_deg === null) {
+                    showModal("B점의 교각 형식이 올바르지 않습니다. '도-분-초' 형식으로 입력해주세요 (예: 35-15-30).");
+                    return;
+                }
+                if (isNaN(distanceB)) {
+                    showModal("B점의 수평거리를 올바른 숫자로 입력해주세요.");
+                    return;
+                }
+
+                // A->B 방위각 계산: A->T 방위각에 A점에서의 교각을 더함
+                let bearingAB_deg = bearingAT_deg + deflectionAngleB_deg;
+                while (bearingAB_deg >= 360) {
+                    bearingAB_deg -= 360;
+                }
+                while (bearingAB_deg < 0) {
+                    bearingAB_deg += 360;
+                }
+                const bearingB_rad = degreesToRadians(bearingAB_deg);
+                const pointB = calculateNewCoordinate(pointAX, pointAY, bearingB_rad, distanceB);
+
+                const deflectionAngleC_dms_str = document.getElementById('deflectionAngleC').value;
+                const distanceC = parseFloat(document.getElementById('distanceC').value);
+
+                const deflectionAngleC_deg = dmsToDegrees(deflectionAngleC_dms_str);
+                if (deflectionAngleC_deg === null) {
+                    showModal("C점의 교각 형식이 올바르지 않습니다. '도-분-초' 형식으로 입력해주세요 (예: 20-45-10).");
+                    return;
+                }
+                if (isNaN(distanceC)) {
+                    showModal("C점의 수평거리를 올바른 숫자로 입력해주세요.");
+                    return;
+                }
+
+                // B->C 방위각 계산: A-B 방위각의 역방위각에 B점에서의 교각을 더함
+                const bearingBC_deg = calculateNextBearing(bearingAB_deg, deflectionAngleC_deg);
+                const bearingC_rad = degreesToRadians(bearingBC_deg);
+                const pointC = calculateNewCoordinate(pointB.x, pointB.y, bearingC_rad, distanceC);
+                
+                const deflectionAngleP_dms_str = document.getElementById('deflectionAngleP').value;
+                const distanceP = parseFloat(document.getElementById('distanceP').value);
+                const deflectionAngleP_deg = dmsToDegrees(deflectionAngleP_dms_str);
+                if (deflectionAngleP_deg === null || isNaN(distanceP)) {
+                    showModal("P점의 교각 형식이 올바르지 않거나 거리가 숫자가 아닙니다. 올바른 형식으로 입력해주세요.");
+                    return;
+                }
+                const bearingP_deg = calculateNextBearing(bearingAB_deg, deflectionAngleP_deg);
+                const bearingP_rad = degreesToRadians(bearingP_deg);
+                const pointP = calculateNewCoordinate(pointB.x, pointB.y, bearingP_rad, distanceP);
+                
+                const deflectionAngleQ_dms_str = document.getElementById('deflectionAngleQ').value;
+                const distanceQ = parseFloat(document.getElementById('distanceQ').value);
+                const deflectionAngleQ_deg = dmsToDegrees(deflectionAngleQ_dms_str);
+                if (deflectionAngleQ_deg === null || isNaN(distanceQ)) {
+                    showModal("Q점의 교각 형식이 올바르지 않거나 거리가 숫자가 아닙니다. 올바른 형식으로 입력해주세요.");
+                    return;
+                }
+                const bearingQ_deg = calculateNextBearing(bearingAB_deg, deflectionAngleQ_deg);
+                const bearingQ_rad = degreesToRadians(bearingQ_deg);
+                const pointQ = calculateNewCoordinate(pointB.x, pointB.y, bearingQ_rad, distanceQ);
+                
+                const deflectionAngleR_dms_str = document.getElementById('deflectionAngleR').value;
+                const distanceR = parseFloat(document.getElementById('distanceR').value);
+                const deflectionAngleR_deg = dmsToDegrees(deflectionAngleR_dms_str);
+                if (deflectionAngleR_deg === null || isNaN(distanceR)) {
+                    showModal("R점의 교각 형식이 올바르지 않거나 거리가 숫자가 아닙니다. 올바른 형식으로 입력해주세요.");
+                    return;
+                }
+                const bearingR_deg = calculateNextBearing(bearingBC_deg, deflectionAngleR_deg);
+                const bearingR_rad = degreesToRadians(bearingR_deg);
+                const pointR = calculateNewCoordinate(pointC.x, pointC.y, bearingR_rad, distanceR);
+
+                const deflectionAngleS_dms_str = document.getElementById('deflectionAngleS').value;
+                const distanceS = parseFloat(document.getElementById('distanceS').value);
+                const deflectionAngleS_deg = dmsToDegrees(deflectionAngleS_dms_str);
+                if (deflectionAngleS_deg === null || isNaN(distanceS)) {
+                    showModal("S점의 교각 형식이 올바르지 않거나 거리가 숫자가 아닙니다. 올바른 형식으로 입력해주세요.");
+                    return;
+                }
+                const bearingS_deg = calculateNextBearing(bearingBC_deg, deflectionAngleS_deg);
+                const bearingS_rad = degreesToRadians(bearingS_deg);
+                const pointS = calculateNewCoordinate(pointC.x, pointC.y, bearingS_rad, distanceS);
+
+                const psDistance = calculateDistance(pointP.x, pointP.y, pointS.x, pointS.y);
+
+                document.getElementById('displayAX').textContent = pointAX.toFixed(3);
+                document.getElementById('displayAY').textContent = pointAY.toFixed(3);
+                document.getElementById('displayBX').textContent = pointB.x.toFixed(3);
+                document.getElementById('displayBY').textContent = pointB.y.toFixed(3);
+                document.getElementById('displayCX').textContent = pointC.x.toFixed(3);
+                document.getElementById('displayCY').textContent = pointC.y.toFixed(3);
+                document.getElementById('displayPX').textContent = pointP.x.toFixed(3);
+                document.getElementById('displayPY').textContent = pointP.y.toFixed(3);
+                document.getElementById('displayQX').textContent = pointQ.x.toFixed(3);
+                document.getElementById('displayQY').textContent = pointQ.y.toFixed(3);
+                document.getElementById('displayRX').textContent = pointR.x.toFixed(3);
+                document.getElementById('displayRY').textContent = pointR.y.toFixed(3);
+                document.getElementById('displaySX').textContent = pointS.x.toFixed(3);
+                document.getElementById('displaySY').textContent = pointS.y.toFixed(3);
+                document.getElementById('displayPSDistance').textContent = psDistance.toFixed(3);
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+

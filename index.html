@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메인 메뉴</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+        .menu-list {
+            list-style: none;
+            padding: 0;
+        }
+        .menu-list li {
+            margin-bottom: 15px;
+        }
+        .menu-list a {
+            display: block;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+        }
+        .menu-list a:hover {
+            background-color: #0056b3;
+        }
+
+        /* 모바일 최적화를 위한 미디어 쿼리 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            .menu-list a {
+                font-size: 1em;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>지적산업기사 메뉴</h1>
+        <ul class="menu-list">
+            <li><a href="./00.지적산업기사_세부측량/index.html">00.지적산업기사_세부측량</a></li>
+            <li><a href="./01.지적산업기사_방위각법/index.html">01.지적산업기사_방위각법</a></li>
+            <li><a href="./02.지적기사_세부측량/index.html">02.지적기사_세부측량</a></li>
+            <li><a href="./03.지적기사_방위각법/index.html">03.지적기사_방위각법</a></li>
+            <li><a href="./04.측량_토탈스테이션/index.html">04.측량_토탈스테이션</a></li>
+        </ul>
+    </div>
+</body>
+</html>
