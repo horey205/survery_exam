@@ -218,6 +218,11 @@
         <button id="calculateBtn">좌표 및 면적 계산</button>
 
         <div class="results">
+            <div id="calculatedBearings">
+                <h2>계산된 방위각</h2>
+                <p><strong>AB 방위각:</strong> <span id="displayBearingAB">계산 전</span> (도-분-초)</p>
+                <p><strong>BQ 방위각:</strong> <span id="displayBearingBQ">계산 전</span> (도-분-초)</p>
+            </div>
             <h2>계산된 좌표</h2>
             <div id="calculatedCoordinates">
                 <p><strong>A점:</strong> X: <span id="displayAX"></span>, Y: <span id="displayAY"></span></p>
@@ -239,6 +244,23 @@
             const errorModal = document.getElementById('error-modal');
             const errorMessage = document.getElementById('error-message');
             const closeModalBtn = document.getElementById('close-modal-btn');
+            
+            const displayBearingAB = document.getElementById('displayBearingAB');
+            const displayBearingBQ = document.getElementById('displayBearingBQ');
+
+            // 초기 좌표값 표시 (A점은 입력값이므로 로드 시점에 표시)
+            function displayInitialCoordinates() {
+                const pointAX = document.getElementById('pointAX').value;
+                const pointAY = document.getElementById('pointAY').value;
+
+                document.getElementById('displayAX').textContent = pointAX ? parseFloat(pointAX).toFixed(3) : '';
+                document.getElementById('displayAY').textContent = pointAY ? parseFloat(pointAY).toFixed(3) : '';
+            }
+
+            // A점 입력 필드 변경 시 즉시 좌표 업데이트
+            document.getElementById('pointAX').addEventListener('input', displayInitialCoordinates);
+            document.getElementById('pointAY').addEventListener('input', displayInitialCoordinates);
+            displayInitialCoordinates(); // 페이지 로드 시 초기 표시
 
             function showModal(message) {
                 errorMessage.textContent = message;
@@ -271,18 +293,55 @@
                 return null;
             }
 
+            /**
+             * 도(degrees)를 도-분-초 문자열로 변환하는 함수
+             * 초(Seconds)는 정수 두 자리로 표시됨 (예: '100-02-22')
+             * @param {number} degrees 도(degrees)
+             * @returns {string} 도-분-초 형식의 문자열
+             */
+            function degreesToDMS(degrees) {
+                let normalizedDegrees = degrees % 360;
+                if (normalizedDegrees < 0) {
+                    normalizedDegrees += 360;
+                }
+                
+                const d = Math.floor(normalizedDegrees);
+                let minutesFloat = (normalizedDegrees - d) * 60;
+                const m = Math.floor(minutesFloat);
+                let s = (minutesFloat - m) * 60;
+                
+                // 요청에 따라 초(s)를 정수로 반올림
+                let s_rounded_int = Math.round(s);
+
+                // 초가 60초가 되면 분으로 올림 처리
+                if (s_rounded_int >= 60) {
+                    const m_new = m + 1;
+                    s_rounded_int = 0; // 초는 0으로 리셋
+                    
+                    if (m_new >= 60) {
+                        const d_new = d + 1;
+                        // 초를 두 자리로 맞춤 ('00')
+                        return `${d_new % 360}-${'00'.padStart(2, '0')}-${s_rounded_int.toString().padStart(2, '0')}`;
+                    }
+                    // 분과 초를 두 자리로 맞춤
+                    return `${d}-${m_new.toString().padStart(2, '0')}-${s_rounded_int.toString().padStart(2, '0')}`;
+                }
+                
+                // 분과 초를 두 자리로 맞춤 (예: 2 -> 02)
+                const m_padded = m.toString().padStart(2, '0');
+                const s_padded = s_rounded_int.toString().padStart(2, '0');
+
+                const dms_string = `${d}-${m_padded}-${s_padded}`;
+                return dms_string;
+            }
+
+
             function degreesToRadians(degrees) {
                 return degrees * (Math.PI / 180);
             }
             
             /**
              * 새로운 좌표를 계산하는 함수입니다.
-             * 표준 측량 좌표계(X축: 북쪽, Y축: 동쪽)를 기준으로 계산합니다.
-             * @param {number} originX 기준점의 X 좌표.
-             * @param {number} originY 기준점의 Y 좌표.
-             * @param {number} bearingRadians 방위각(라디안).
-             * @param {number} distance 수평거리.
-             * @returns {object} 새로운 X, Y 좌표를 포함하는 객체.
              */
             function calculateNewCoordinate(originX, originY, bearingRadians, distance) {
                 const deltaX = distance * Math.cos(bearingRadians);
@@ -296,10 +355,6 @@
 
             /**
              * 다음 측점의 방위각을 계산하는 함수입니다.
-             * 이전 방위각에 교각을 더하는 방식으로 계산합니다.
-             * @param {number} prevBearing 이전 방위각(도).
-             * @param {number} deflectionAngle 교각(도).
-             * @returns {number} 새로운 방위각(도).
              */
             function calculateNextBearing(prevBearing, deflectionAngle) {
                 let newBearing = prevBearing + deflectionAngle;
@@ -328,9 +383,7 @@
             }
 
             calculateButton.addEventListener('click', () => {
-                // Clear previous results
-                document.getElementById('displayAX').textContent = '';
-                document.getElementById('displayAY').textContent = '';
+                // Clear previous coordinate/area results
                 document.getElementById('displayPX').textContent = '';
                 document.getElementById('displayPY').textContent = '';
                 document.getElementById('displayBX').textContent = '';
@@ -338,6 +391,11 @@
                 document.getElementById('displayQX').textContent = '';
                 document.getElementById('displayQY').textContent = '';
                 document.getElementById('displayArea').textContent = '';
+                
+                // Clear bearings display (resetting to '계산 중...' 또는 초기 값)
+                displayBearingAB.textContent = '계산 중...';
+                displayBearingBQ.textContent = '계산 중...';
+
 
                 // 1. Get A point coordinates and initial bearing A -> P
                 const pointAX = parseFloat(document.getElementById('pointAX').value);
@@ -375,6 +433,8 @@
                     showModal("B점의 수평거리를 올바른 숫자로 입력해주세요.");
                     return;
                 }
+                
+                // AB 방위각 계산 (A->P 방위각에서 교각 B를 더함)
                 const bearingAB_deg = calculateNextBearing(bearingAP_deg, deflectionAngleB_deg);
                 const bearingAB_rad = degreesToRadians(bearingAB_deg);
                 const pointB = calculateNewCoordinate(pointAX, pointAY, bearingAB_rad, distanceB);
@@ -391,14 +451,25 @@
                     showModal("Q점의 수평거리를 올바른 숫자로 입력해주세요.");
                     return;
                 }
-                const bearingBA_deg = bearingAB_deg + 180;
+                
+                // BA 방위각 = AB 방위각 + 180도 (180도 초과 시 360도 빼줌)
+                const bearingBA_deg = calculateNextBearing(bearingAB_deg, 180);
+                
+                // BQ 방위각 계산 (B->A 방위각에서 교각 Q를 더함)
                 const bearingBQ_deg = calculateNextBearing(bearingBA_deg, deflectionAngleQ_deg);
                 const bearingBQ_rad = degreesToRadians(bearingBQ_deg);
                 const pointQ = calculateNewCoordinate(pointB.x, pointB.y, bearingBQ_rad, distanceQ);
 
-                // 5. Display results
+                // **방위각 결과 업데이트**
+                displayBearingAB.textContent = degreesToDMS(bearingAB_deg);
+                displayBearingBQ.textContent = degreesToDMS(bearingBQ_deg);
+
+
+                // 5. Display coordinates results
+                // A점은 이미 displayInitialCoordinates에서 처리했으나, 혹시 몰라 다시 한번.
                 document.getElementById('displayAX').textContent = pointAX.toFixed(3);
                 document.getElementById('displayAY').textContent = pointAY.toFixed(3);
+                
                 document.getElementById('displayPX').textContent = pointP.x.toFixed(3);
                 document.getElementById('displayPY').textContent = pointP.y.toFixed(3);
                 document.getElementById('displayBX').textContent = pointB.x.toFixed(3);
